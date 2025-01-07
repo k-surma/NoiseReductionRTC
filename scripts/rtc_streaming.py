@@ -1,15 +1,37 @@
-import numpy as np
-from aiortc.mediastreams import AudioStreamTrack
+from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
+from pygments.lexers import web
+
+from scripts.data_preparation import DataPreparation
 
 
-class RTCStreaming:
-    class NoisyAudioTrack(AudioStreamTrack):
-        def __init__(self, track, noise_level):
-            super().__init__()
-            self.track = track
-            self.noise_level = noise_level
+class NoisyAudioTrack(MediaStreamTrack):
+    """A MediaStreamTrack that applies noise to an audio stream."""
+    kind = "audio"
 
-        async def recv(self):
-            frame = await self.track.recv()
-            frame.samples += np.random.normal(0, self.noise_level, frame.samples.shape)
-            return frame
+    def __init__(self, source, noise_level=0.1):
+        super().__init__()
+        self.source = source
+        self.noise_level = noise_level
+
+    async def recv(self):
+        frame = await self.source.recv()
+        prbs_noise = DataPreparation.generate_prbs(len(frame.samples)) * self.noise_level
+        frame.samples += prbs_noise.astype(frame.samples.dtype)
+        return frame
+
+async def offer(request):
+    pc = RTCPeerConnection()
+
+    params = await request.json()
+    offer = RTCSessionDescription(sdp=params["sdp"], type=params["type"])
+    await pc.setRemoteDescription(offer)
+
+    @pc.on("track")
+    def on_track(track):
+        if track.kind == "audio":
+            noisy_track = NoisyAudioTrack(track, noise_level=0.1)
+            pc.addTrack(noisy_track)
+
+    answer = await pc.createAnswer()
+    await pc.setLocalDescription(answer)
+    return web.json_response({"sdp": pc.localDescription.sdp, "type": pc.localDescription.type})

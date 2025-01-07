@@ -1,19 +1,23 @@
-import matplotlib.pyplot as plt
 import numpy as np
+
+
 class Visualization:
     @staticmethod
-    def plot_signals(clean_signal, noisy_signal, denoised_signal):
-        plt.figure(figsize=(10, 5))
-        plt.plot(clean_signal, label='Clean Signal')
-        plt.plot(noisy_signal, label='Noisy Signal')
-        plt.plot(denoised_signal, label='Denoised Signal')
-        plt.legend()
-        plt.title('Signal Comparison')
-        plt.show()
+    def calculate_latency(start_time, end_time):
+        latency = end_time - start_time
+        print(f"Latency: {latency:.2f} seconds")
+        return latency
+
+    @staticmethod
+    def calculate_packet_loss(original_packets, received_packets):
+        loss = (original_packets - received_packets) / original_packets * 100
+        print(f"Packet Loss: {loss:.2f}%")
+        return loss
 
     @staticmethod
     def calculate_snr(clean_signal, denoised_signal):
-        signal_power = np.mean(clean_signal**2)
-        noise_power = np.mean((clean_signal - denoised_signal)**2)
+        signal_power = np.mean(clean_signal ** 2)
+        noise_power = np.mean((clean_signal - denoised_signal) ** 2)
         snr = 10 * np.log10(signal_power / noise_power)
         print(f"SNR: {snr:.2f} dB")
+        return snr
